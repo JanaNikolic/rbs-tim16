@@ -23,6 +23,7 @@ print(os.getenv('JWT_SECRET'))
 
 cert_path = os.getenv('CERT_PATH')
 key_path = os.getenv('KEY_PATH')
+port = int(os.getenv('FLASK_PORT', 5000))
 
 
 # Initialize Consul client
@@ -267,4 +268,4 @@ def delete_if_lower_rights(relation, spec, curr_relation, doc, user):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     context = (cert_path, key_path)
-    app.run(ssl_context=context)
+    app.run(port=port, ssl_context=context)
