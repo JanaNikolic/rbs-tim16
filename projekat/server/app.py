@@ -12,7 +12,7 @@ import os
 
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
-app.config['JWT_SECRET_KEY'] = 'jwt_secret_key'  # Change this to a strong secret key
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET')  # Change this to a strong secret key
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=24)  # Token expiration time
 jwt = JWTManager(app)
 
@@ -264,4 +264,4 @@ def delete_if_lower_rights(relation, spec, curr_relation, doc, user):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     context = (cert_path, key_path)
-    app.run(debug=True, ssl_context=context)
+    app.run(debug=True)
