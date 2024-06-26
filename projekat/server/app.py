@@ -111,7 +111,7 @@ def write_to_consul(key):
 
         return jsonify({'message': 'Data written to Consul successfully'}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
     
 
 @app.route('/consul/read/<key>', methods=['GET'])
@@ -126,7 +126,7 @@ def read_from_consul(key):
 
         return jsonify({'key': key, 'value': value}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @app.route('/acl/check/<doc>/<relation>/<user>', methods=['GET'])
@@ -154,7 +154,7 @@ def check_role(doc, relation, user):
         #     redis_client.set(key, json.dumps(value))
         #     return jsonify({'message': 'Data written to Redis successfully'}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 
@@ -178,7 +178,7 @@ def write_to_redis():
             redis_client.set(key, json.dumps(value))
             return jsonify({'message': 'Data written to Redis successfully'}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
     
 
 def read_all_keys_from_redis(doc, user, spec):
