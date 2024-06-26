@@ -1,5 +1,6 @@
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import datetime
+import bcrypt
 from flask import Flask, request, jsonify
 import consul
 import json
@@ -25,8 +26,18 @@ key_path = os.getenv('KEY_PATH')
 consul_client = consul.Consul(host='localhost', port=8500)
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
+
+# Function to hash a password
+def hash_password(password):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+# Function to check if a password matches the hashed password
+def check_password(hashed_password, password):
+    return bcrypt.checkpw(password.encode('utf-8'), hashed_password)
+
+
 users = {
-    "user": "password123"
+    "user": hash_password("password123")
 }
 
 @jwt.unauthorized_loader
@@ -43,6 +54,20 @@ def invalid_token_response(callback):
         'description': 'Signature verification failed'
     }), 401
 
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if username in users:
+        return jsonify({"msg": "User already exists"}), 400
+
+    hashed_password = hash_password(password)
+    users[username] = hashed_password
+
+    return jsonify({"msg": "User registered successfully"}), 200
+
 @app.route('/login', methods=['POST'])
 def login():
     if not request.is_json:
@@ -54,7 +79,9 @@ def login():
     if not username or not password:
         return jsonify({"msg": "Missing username or password"}), 400
 
-    if username not in users or users[username] != password:
+    hashed_password = users.get(username)
+
+    if hashed_password is None or not check_password(hashed_password, password):
         return jsonify({"msg": "Bad username or password"}), 401
 
     access_token = create_access_token(identity=username)
@@ -237,4 +264,4 @@ def delete_if_lower_rights(relation, spec, curr_relation, doc, user):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     context = (cert_path, key_path)
-    app.run(debug=True)
+    app.run(debug=True, ssl_context=context)
