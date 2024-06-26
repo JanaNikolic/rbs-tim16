@@ -1,0 +1,36 @@
+# Ignore virtual environment directory
+venv/
+env/
+server/*.pem
+*.pyc
+__pycache__/
+
+# Ignore .env file
+.env
+
+# Ignore other common Python-related files
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+.Python
+python_venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Ignore macOS-specific files
+.DS_Store
+
+# Ignore Visual Studio Code settings
+.vscode/
+
+# Ignore PyCharm settings
+.idea/
+
+# Ignore JetBrains settings
+*.iml
+

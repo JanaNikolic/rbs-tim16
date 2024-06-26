@@ -1,0 +1,7 @@
+requests
+redis
+python-consul
+Flask
+python-dotenv
+Flask-JWT-Extended
+bcrypt
