@@ -1,0 +1,3 @@
+# .env file
+CERT_PATH=cert.pem
+KEY_PATH=key.pem
