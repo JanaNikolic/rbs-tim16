@@ -1,3 +1,6 @@
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+import datetime
+import bcrypt
 from flask import Flask, request, jsonify
 import consul
 import json
@@ -12,6 +15,12 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET')  # Change this to a strong secret key
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=24)  # Token expiration time
+jwt = JWTManager(app)
+
+print(os.getenv('JWT_SECRET'))
+
 cert_path = os.getenv('CERT_PATH')
 key_path = os.getenv('KEY_PATH')
 
@@ -21,7 +30,70 @@ consul_client = consul.Consul(host='localhost', port=8500)
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
 
+# Function to hash a password
+def hash_password(password):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+# Function to check if a password matches the hashed password
+def check_password(hashed_password, password):
+    return bcrypt.checkpw(password.encode('utf-8'), hashed_password)
+
+
+users = {
+    "user": hash_password("password123")
+}
+
+@jwt.unauthorized_loader
+def unauthorized_response(callback):
+    return jsonify({
+        'error': 'Authorization required',
+        'description': 'Request does not contain an access token'
+    }), 401
+
+@jwt.invalid_token_loader
+def invalid_token_response(callback):
+    return jsonify({
+        'error': 'Invalid token',
+        'description': 'Signature verification failed'
+    }), 401
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if username in users:
+        return jsonify({"msg": "User already exists"}), 400
+
+    hashed_password = hash_password(password)
+    users[username] = hashed_password
+
+    return jsonify({"msg": "User registered successfully"}), 200
+
+@app.route('/login', methods=['POST'])
+def login():
+    if not request.is_json:
+        return jsonify({"msg": "Missing JSON in request"}), 400
+
+    username = request.json.get('username', None)
+    password = request.json.get('password', None)
+
+    if not username or not password:
+        return jsonify({"msg": "Missing username or password"}), 400
+
+    hashed_password = users.get(username)
+
+    if hashed_password is None or not check_password(hashed_password, password):
+        return jsonify({"msg": "Bad username or password"}), 401
+
+    access_token = create_access_token(identity=username)
+    return jsonify(access_token=access_token), 200
+
+
+
 @app.route('/namespace/<key>', methods=['POST'])
+@jwt_required()
 def write_to_consul(key):
     try:
         # Extract JSON data from the request
@@ -42,6 +114,7 @@ def write_to_consul(key):
     
 
 @app.route('/consul/read/<key>', methods=['GET'])
+@jwt_required()
 def read_from_consul(key):
     try:
         index, data = consul_client.kv.get(key)
@@ -56,6 +129,7 @@ def read_from_consul(key):
 
 
 @app.route('/acl/check/<doc>/<relation>/<user>', methods=['GET'])
+@jwt_required()
 def check_role(doc, relation, user):
     try:
         key = doc + '#' + relation + '@' + user
@@ -84,6 +158,7 @@ def check_role(doc, relation, user):
 
 
 @app.route('/acl', methods=['POST'])
+@jwt_required()
 def write_to_redis():
     try:
         data = request.get_json()
@@ -192,4 +267,4 @@ def delete_if_lower_rights(relation, spec, curr_relation, doc, user):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     context = (cert_path, key_path)
-    app.run(debug=True, ssl_context=context)
+    app.run(ssl_context=context)
